@@ -1,0 +1,542 @@
+import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { Checkbox, Row, Col, Input, Spin, message } from "antd";
+import styled from "styled-components";
+import { setFormData } from "../../store/formSlice";
+import { headings, textColor, cisco, white } from "../../constants/colors";
+import axios from "axios";
+import { baseUrl } from "../../utills/axios";
+import { MdLightbulbOutline } from "react-icons/md";
+import { FaComments } from "react-icons/fa";
+import HorizontalProgress from "../../components/horizontalProgress";
+import { useFetchQuestionAnswersQuery } from "../../store/api";
+import { setQuestionAnswersData } from "../../store/questionAnswersSlice";
+import { setQuestionAnswerData } from "../../store/questionAnswersSlice";
+import CustomButton from "../../components/customButton";
+import { useLocation } from "react-router-dom";
+import HeaderComp from "../../components/header";
+import { useNavigate } from "react-router-dom";
+const { TextArea } = Input;
+
+const plainOptions = [
+  "Ad hoc or reactive: lack of a formal data protection strategy: ad hoc measures to address privacy concerns; basic compliance with relevant data protection regulations (no comprehensive framework in place, limited awareness of data privacy risks and minimal employee training on data protection practices",
+  "Initial compliance: some formal data protection practices and policies in place",
+  "Meet the minimum requirements of data protection regulations; basic data protection awareness training provided to employees",
+  "Defined and managed: well-defined data protection and privacy policies and procedures in place; compliance via constant monitoring of data protection regulations and standards; regular training of employees and communication on data protection",
+  "Proactive and continuously improvement: proactive approach to identifying and mitigating data privacy risks and vulnerabilities; adoption of data protection best practices; a strong culture of data protection with ongoing training and the reinforcement of privacy principles",
+  "Mature and integrated: data protection and privacy are fully integrated into the business processes and technciogy",
+];
+
+const StyledCheckboxGroup = styled(Checkbox.Group)`
+  width: 100%;
+  display: unset;
+`;
+
+const StyledCheckbox = styled(Checkbox)`
+  color: ${textColor};
+  font-weight: 500;
+  font-size: 14px;
+  margin-bottom: 10px;
+  .ant-checkbox-wrapper {
+    display: flex;
+    align-items: start;
+  }
+
+  .ant-checkbox {
+    margin-top: 4px;
+    margin-right: 10px;
+  }
+  .ant-checkbox-checked .ant-checkbox-inner {
+    background-color: ${cisco}; /* Change this to your desired color */
+    border-color: ${cisco}; /* Change this to your desired color */
+  }
+  &:hover .ant-checkbox-inner,
+  &:hover .ant-checkbox-checked .ant-checkbox-inner {
+    border-color: ${cisco}; /* Change this to your desired color */
+  }
+`;
+
+const Container = styled.div`
+  width: 95%;
+  margin: 0 auto;
+  line-height: unset;
+  margin-top: 30px;
+`;
+
+const Title = styled.p`
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 30px;
+  text-align: start;
+  color: ${headings};
+  margin-bottom: 40px;
+`;
+
+const Question = styled.p`
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 30px;
+  text-align: start;
+  color: ${headings};
+  margin-bottom: 30px;
+`;
+const { Group: CheckboxGroup } = Checkbox;
+const EditSubType = () => {
+  const [value, setValue] = useState("");
+  const dispatch = useDispatch();
+  const [messageApi, contextHolder] = message.useMessage();
+  const storedData = localStorage.getItem("loginData");
+  const loginData = JSON.parse(storedData);
+  const [questionAnswers, setQuestionAnswers] = useState();
+  const [loading, setLoading] = useState(false);
+  const [index, setIndex] = useState(0);
+  const [data, setData] = useState([]);
+  const [comment, setComment] = useState();
+  const [comments, setComments] = useState({});
+  const details = useSelector((state) => state.form);
+  const location = useLocation();
+  const { id } = location.state || {};
+  console.log("stored values before", details);
+  const navigate = useNavigate();
+  const updatedDetails =
+    details?.sustainabiltyIT?.flatMap((data) => data?.answers) || [];
+  console.log("updatedDetails", updatedDetails);
+
+  const questionAns = useSelector(
+    (state) => state.questionAnswers?.data?.question_answer
+  );
+  console.log("loginData:", loginData?.user_info?.id);
+
+  const [selectedAnswers, setSelectedAnswers] = useState([]);
+
+  const fetchSustainableIt = async () => {
+    setLoading(true);
+    const payload = {
+      user_id: loginData?.user_info?.id,
+      subtype_id: id,
+    };
+    try {
+      const res = await axios.post(
+        baseUrl + `/api/v2/question-answer/subtype-questions-answers`,
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${loginData?.access_token}`,
+          },
+        }
+      );
+      if (res.status === 200) {
+        setLoading(false);
+        // dispatch(setQuestionAnswerData({ data: res?.data }));
+        setData(res?.data);
+        const preSelectedAnswers = res.data?.questions?.map((question) => ({
+          question_id: question.question_id,
+          answer_ids: question.answer_values
+            .filter((answer) => answer.is_selected)
+            .map((answer) => answer.answer_id),
+        }));
+
+        setSelectedAnswers(preSelectedAnswers);
+      }
+    } catch (error) {
+      setLoading(false);
+
+      console.log("error...", error);
+    }
+  };
+  useEffect(() => {
+    fetchSustainableIt();
+  }, []);
+
+  console.log("data:", data);
+
+  const addComment = async (question_id) => {
+    console.log("questionAns......", questionAns);
+
+    const payload = {
+      user_id: loginData?.user_info?.id,
+      question_id,
+      comment: comments[question_id],
+    };
+    try {
+      const res = await axios.post(
+        baseUrl + "/api/v2/comment/create-comment",
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${loginData?.access_token}`,
+          },
+        }
+      );
+      if (res?.status === 200) {
+        setComments({});
+        messageApi.open({
+          // className: "custom-error-message",
+          type: "success",
+          content: "Comment Added Successfully",
+        });
+      }
+      console.log("comment res:", res);
+    } catch (error) {
+      console.log("error::", error);
+      messageApi.open({
+        // className: "custom-error-message",
+        type: "error",
+        content: "Something Went Wrong",
+      });
+    }
+  };
+  // const onChange = (checkedValues, question_id) => {
+
+  //   const updatedAnswers = selectedAnswers.filter(
+  //     (answer) => answer.question_id !== question_id
+  //   );
+  //   updatedAnswers.push({ question_id, answers: checkedValues });
+
+  //   setSelectedAnswers(updatedAnswers);
+  //   dispatch(setFormData({ sustainabiltyIT: updatedAnswers }));
+  // };
+  const onChange = (checkedValues, question_id) => {
+    // Update selected answers
+    setSelectedAnswers((prevAnswers) => {
+      const updatedAnswers = prevAnswers.map((answer) =>
+        answer.question_id === question_id
+          ? { answer_ids: checkedValues, question_id: question_id }
+          : answer
+      );
+      console.log("updatedAnswers:", updatedAnswers);
+      return updatedAnswers;
+    });
+  };
+
+  const handleCommentChange = (question_id, value) => {
+    setComments((prevComments) => ({
+      ...prevComments,
+      [question_id]: value,
+    }));
+  };
+  const getCheckedValues = (question_id) => {
+    const question = selectedAnswers.find(
+      (answer) => answer.question_id === question_id
+    );
+    return question ? question.answer_ids : [];
+  };
+
+  const updateAnswers = async () => {
+    setLoading(true);
+    try {
+      const payload = {
+        selected_answers: updatedDetails,
+      };
+      const res = await axios.put(
+        baseUrl +
+          `/api/v2/user-answer/update-user-answers-all/${loginData?.user_info?.id}`,
+        selectedAnswers,
+        {
+          headers: {
+            Authorization: `Bearer ${loginData?.access_token}`,
+          },
+        }
+      );
+      if (res.status === 200) {
+        setLoading(false);
+        messageApi.open({
+          type: "success",
+          content: res?.data?.message,
+        });
+        setTimeout(() => {
+          navigate(-1);
+        }, 1000);
+      }
+      console.log("update answers:", res);
+    } catch (error) {
+      setLoading(false);
+    }
+  };
+  console.log("selectedAnswers:", selectedAnswers);
+
+  return (
+    <>
+      {contextHolder}
+      <HeaderComp />
+      <Spin spinning={loading}>
+        <Container>
+          <div>
+            <Title>
+              Sustainability Maturity Assessment - {data?.framework_name}
+            </Title>
+
+            <div style={{ marginBottom: "20px", marginTop: "20px" }}>
+              <p
+                style={{
+                  textAlign: "start",
+                  marginBottom: "30px",
+                  color: "black",
+                  fontSize: "18px",
+                  fontWeight: 600,
+                }}
+              >
+                {data?.subtype_name}
+              </p>
+              <Row>
+                {data?.questions?.map((question, qIndex) => (
+                  <Row key={qIndex}>
+                    <Col lg={16}>
+                      <div
+                        style={{
+                          marginBottom: "100px",
+                          padding: "0 20px 0 0px",
+                        }}
+                      >
+                        <Question>
+                          Q{qIndex + 1}.{question?.question}
+                        </Question>
+                        <StyledCheckboxGroup
+                          multiple={question?.is_single_choice}
+                          value={getCheckedValues(question.question_id)}
+                          onChange={(checkedValues) =>
+                            onChange(checkedValues, question.question_id)
+                          }
+                        >
+                          <Row justify="center" gutter={[16, 16]}>
+                            {question?.answer_values?.map(
+                              (option, optionIndex) => (
+                                <Col
+                                  style={{ textAlign: "start" }}
+                                  span={24}
+                                  key={optionIndex}
+                                >
+                                  <StyledCheckbox value={option.answer_id}>
+                                    {option.answer}
+                                  </StyledCheckbox>
+                                </Col>
+                              )
+                            )}
+                          </Row>
+                        </StyledCheckboxGroup>
+                      </div>
+                    </Col>
+                    <Col lg={8}>
+                      <div
+                        style={{
+                          padding: "0 0px 0 20px",
+                          marginBottom: "20px",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "10px",
+                            marginBottom: "20px",
+                          }}
+                        >
+                          <p
+                            style={{
+                              width: "28px",
+                              height: "28px",
+                              background: cisco,
+                              borderRadius: "100%",
+                              display: "flex",
+                              justifyContent: "center",
+                              alignItems: "center",
+                            }}
+                          >
+                            <MdLightbulbOutline
+                              style={{ color: "white", fontSize: "18px" }}
+                            />
+                          </p>
+                          <p
+                            style={{
+                              fontSize: "20px",
+                              fontWeight: 500,
+                              color: headings,
+                              textAlign: "start",
+                            }}
+                          >
+                            Here are some tips for you
+                          </p>
+                        </div>
+                        <div
+                          style={{
+                            textAlign: "start",
+                            background: "#f2f4f7",
+                            padding: "20px 30px",
+                            borderRadius: "10px",
+                          }}
+                        >
+                          <p
+                            style={{
+                              marginBottom: "10px",
+                              fontWeight: 500,
+                              color: headings,
+                            }}
+                          >
+                            Recall any data protection training or workshops
+                            attended.
+                          </p>
+                          <p
+                            style={{
+                              marginBottom: "10px",
+                              fontWeight: 500,
+                              color: headings,
+                            }}
+                          >
+                            Consider the technological tools in place for data
+                            safeguarding.
+                          </p>
+                          <p
+                            style={{
+                              marginBottom: "10px",
+                              fontWeight: 500,
+                              color: headings,
+                            }}
+                          >
+                            Think about your organization's dedicated
+                            cybersecurity team or expert.
+                          </p>
+                          <p
+                            style={{
+                              marginBottom: "10px",
+                              fontWeight: 500,
+                              color: headings,
+                            }}
+                          >
+                            Reflect on past data breaches and the organization's
+                            response.
+                          </p>
+                          <p
+                            style={{
+                              // marginBottom: "20px",
+                              fontWeight: 500,
+                              color: headings,
+                            }}
+                          >
+                            Remember how often data protection updates are
+                            communicated to employees.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div style={{ padding: "0 0px 0 20px" }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "10px",
+                              marginBottom: "20px",
+                            }}
+                          >
+                            <p
+                              style={{
+                                width: "28px",
+                                height: "28px",
+                                background: cisco,
+                                borderRadius: "100%",
+                                display: "flex",
+                                justifyContent: "center",
+                                alignItems: "center",
+                              }}
+                            >
+                              <FaComments
+                                style={{ color: "white", fontSize: "18px" }}
+                              />
+                            </p>
+                            <p
+                              style={{
+                                fontSize: "20px",
+                                fontWeight: 500,
+                                color: headings,
+                                textAlign: "start",
+                              }}
+                            >
+                              Additional Comments:
+                            </p>
+                          </div>
+                          {comments[question.question_id] && (
+                            <CustomButton
+                              style={{
+                                height: "25px",
+                                fontSize: "12px",
+                                fontWeight: 500,
+                              }}
+                              onClick={() => addComment(question?.question_id)}
+                            >
+                              Save
+                            </CustomButton>
+                          )}
+                        </div>
+
+                        <div
+                          style={{
+                            textAlign: "start",
+
+                            borderRadius: "10px",
+                          }}
+                        >
+                          <TextArea
+                            value={comments[question.question_id] || ""}
+                            placeholder="Add comment here..."
+                            onChange={(e) =>
+                              handleCommentChange(
+                                question.question_id,
+                                e.target.value
+                              )
+                            }
+                            autoSize={{
+                              minRows: 3,
+                              maxRows: 5,
+                            }}
+                            style={{ background: "#f2f4f7" }}
+                          />
+                        </div>
+                      </div>
+                    </Col>
+                  </Row>
+                ))}
+              </Row>
+            </div>
+          </div>
+        </Container>
+      </Spin>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          margin: "30px 30px",
+        }}
+      >
+        <CustomButton
+          style={{
+            background: cisco,
+            color: white,
+            width: "100px",
+          }}
+          onClick={() => navigate(-1)}
+        >
+          Back
+        </CustomButton>
+        <CustomButton
+          style={{
+            background: cisco,
+            color: white,
+            width: "100px",
+          }}
+          onClick={updateAnswers}
+        >
+          Submit
+        </CustomButton>
+      </div>
+    </>
+  );
+};
+
+export default EditSubType;

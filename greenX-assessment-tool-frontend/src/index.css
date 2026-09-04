@@ -1,0 +1,39 @@
+@font-face {
+  font-family: "inter";
+  src: url("./resources/fonts/Inter-4.0/web/Inter-Regular.woff2")
+      format("woff2"),
+    url("./resources/fonts/Inter-4.0/web/Inter-Regular.woff2") format("woff");
+}
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: inter !important;
+  background-color: #f9f9f9 !important;
+}
+/* :where(.css-dev-only-do-not-override-zg0ahe).ant-steps
+  .ant-steps-item-finish
+  .ant-steps-item-icon
+  > .ant-steps-icon
+  .ant-steps-icon-dot {
+  background: red !important;
+  border-color: red !important;
+  color: red !important;
+} */
+
+@media (max-width: 768px) {
+  .mobile_none {
+    display: none !important;
+  }
+  .project_title {
+    font-size: 12px !important;
+  }
+  .detail_container {
+    width: 100% !important;
+    padding: 10px !important;
+  }
+}

@@ -1,0 +1,12 @@
+export const cisco = "#049FD9";
+export const headings = "#1F2937";
+export const textColor = "#4B5563";
+export const borderColor = "#9CA3AF";
+export const inputIconColor = "#6B7280";
+export const placeholderColor = "#D1D5DB";
+export const white = "#FFFFFF";
+export const roleBg = "#E6F9FF";
+export const colHeadings = "#374151";
+export const progressLine = "#36B2E1";
+export const red = "#DD4840";
+export const lightredBg = "#FEE2E2";
