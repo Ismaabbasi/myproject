@@ -1,3 +1,4 @@
+```groovy
 pipeline {
     agent any
 
@@ -20,7 +21,7 @@ pipeline {
                     withSonarQubeEnv('SonarQube') {
                         sh """
                             ${scannerHome}/bin/sonar-scanner \
-                              -Dsonar.projectKey=greenx-dcs-assessment-tool \
+                              -Dsonar.projectKey=GreenX-DCS-Assessment-Tool \
                               -Dsonar.projectName="GreenX DCS Assessment Tool" \
                               -Dsonar.sources=GreenX_DCS_Assesment_Tool_Backend,greenX-assessment-tool-frontend
                         """
@@ -30,3 +31,4 @@ pipeline {
         }
     }
 }
+```
