@@ -65,6 +65,17 @@ pipeline {
                 }
             }
         }
+
+        stage('Deploy to EC2') {
+            steps {
+                sh '''
+                    cd /opt/myproject/myproject
+
+                    docker compose pull backend frontend
+
+                    docker compose up -d backend frontend
+                '''
+            }
+        }
     }
 }
-
