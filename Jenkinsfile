@@ -36,6 +36,13 @@ stages {
             }
         }
     }
+
+    stage('Build Docker Images') {
+        steps {
+            sh 'docker build -t myproject-backend:latest ./GreenX_DCS_Assesment_Tool_Backend'
+            sh 'docker build -t myproject-frontend:latest ./greenX-assessment-tool-frontend'
+        }
+    }
 }
 
 }
