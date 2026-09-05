@@ -1,3 +1,4 @@
+```groovy
 pipeline {
     agent any
 
@@ -11,17 +12,23 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                def scannerHome = tool name: 'SonarQube-Scanner', type: 'hudson.plugins.sonar.SonarRunnerInstallation'
+                script {
+                    def scannerHome = tool(
+                        name: 'SonarQube-Scanner',
+                        type: 'hudson.plugins.sonar.SonarRunnerInstallation'
+                    )
 
-                withSonarQubeEnv('SonarQube') {
-                    sh """
-                        ${scannerHome}/bin/sonar-scanner \
-                          -Dsonar.projectKey=greenx-dcs-assessment-tool \
-                          -Dsonar.projectName="GreenX DCS Assessment Tool" \
-                          -Dsonar.sources=GreenX_DCS_Assesment_Tool_Backend,greenX-assessment-tool-frontend
-                    """
+                    withSonarQubeEnv('SonarQube') {
+                        sh """
+                            ${scannerHome}/bin/sonar-scanner \
+                              -Dsonar.projectKey=greenx-dcs-assessment-tool \
+                              -Dsonar.projectName="GreenX DCS Assessment Tool" \
+                              -Dsonar.sources=GreenX_DCS_Assesment_Tool_Backend,greenX-assessment-tool-frontend
+                        """
+                    }
                 }
             }
         }
     }
 }
+```
