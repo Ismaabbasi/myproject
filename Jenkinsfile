@@ -1,11 +1,8 @@
 pipeline {
     agent any
 
-    tools {
-        sonarRunner 'SonarQube-Scanner'
-    }
-
     stages {
+
         stage('Checkout') {
             steps {
                 checkout scm
@@ -16,6 +13,8 @@ pipeline {
             steps {
                 withSonarQubeEnv('SonarQube') {
                     sh '''
+                        echo "Checking SonarQube Scanner..."
+                        which sonar-scanner || true
                         sonar-scanner \
                           -Dsonar.projectKey=greenx-dcs-assessment-tool \
                           -Dsonar.projectName="GreenX DCS Assessment Tool" \
