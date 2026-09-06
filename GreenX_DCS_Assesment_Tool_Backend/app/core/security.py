@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 from fastapi import Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import jwt
+import jwt
 from passlib.context import CryptContext
 
 from app.core.config import configs

@@ -1,9 +1,15 @@
-FROM python:3.9-slim-bullseye
+FROM python:3.11-slim-bookworm
 
 WORKDIR /app
 
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y \
+        gcc \
+        g++ \
+        libc6-dev \
+        libffi-dev && \
+    rm -rf /var/lib/apt/lists/*
 
 RUN useradd --create-home appuser
 
@@ -12,9 +18,9 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-COPY --chown=appuser:appuser app ./app
-COPY --chown=appuser:appuser migrations ./migrations
-COPY --chown=appuser:appuser alembic.ini .
+COPY . .
+
+RUN chown -R appuser:appuser /app
 
 USER appuser
 
