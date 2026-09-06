@@ -9,16 +9,15 @@ RUN apt-get update && \
         g++ \
         libc6-dev \
         libffi-dev && \
-    rm -rf /var/lib/apt/lists/*
-
-RUN useradd --create-home appuser
+    rm -rf /var/lib/apt/lists/* && \
+    useradd --create-home appuser
 
 COPY requirements.txt .
 
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY app ./app
 
 RUN chown -R appuser:appuser /app
 
