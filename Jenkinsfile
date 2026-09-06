@@ -44,6 +44,34 @@ pipeline {
             }
         }
 
+        stage('Trivy Security Scan') {
+            steps {
+                sh '''
+                    echo "======================================"
+                    echo "Trivy Backend Security Scan"
+                    echo "======================================"
+
+                    trivy image \
+                        --scanners vuln \
+                        --ignore-unfixed \
+                        --severity HIGH,CRITICAL \
+                        --exit-code 0 \
+                        myproject-backend:latest
+
+                    echo "======================================"
+                    echo "Trivy Frontend Security Scan"
+                    echo "======================================"
+
+                    trivy image \
+                        --scanners vuln \
+                        --ignore-unfixed \
+                        --severity HIGH,CRITICAL \
+                        --exit-code 0 \
+                        myproject-frontend:latest
+                '''
+            }
+        }
+
         stage('Push Docker Images') {
             steps {
                 withCredentials([usernamePassword(
