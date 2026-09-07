@@ -16,13 +16,13 @@ from sqlmodel import SQLModel, create_engine
 from app.core.config import configs
 from app.core.container import Container
 from app.main import AppCreator
-from app.model.post import Post
 from app.model.user import User
 
 
 def insert_default_data(conn):
     user_default_file = open("./tests/test_data/users.json", "r")
     user_default_data = json.load(user_default_file)
+
     for user in user_default_data:
         conn.execute(
             User.__table__.insert(),
@@ -35,23 +35,12 @@ def insert_default_data(conn):
                 "is_superuser": user["is_superuser"],
             },
         )
-    post_default_file = open("./tests/test_data/posts.json", "r")
-    post_default_data = json.load(post_default_file)
-    for post in post_default_data:
-        conn.execute(
-            Post.__table__.insert(),
-            {
-                "title": post["title"],
-                "content": post["content"],
-                "user_token": post["user_token"],
-                "is_published": post["is_published"],
-            },
-        )
 
 
 def reset_db():
     engine = create_engine(configs.DATABASE_URI)
     logger.info(engine)
+
     with engine.begin() as conn:
         if "test" in configs.DATABASE_URI:
             SQLModel.metadata.drop_all(conn)
@@ -59,14 +48,17 @@ def reset_db():
             insert_default_data(conn)
         else:
             raise Exception("Not in test environment")
+
     return engine
 
 
 @pytest.fixture
 def client():
     reset_db()
+
     app_creator = AppCreator()
     app = app_creator.app
+
     with TestClient(app) as client:
         yield client
 
