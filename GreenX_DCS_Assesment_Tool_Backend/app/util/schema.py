@@ -15,6 +15,7 @@ class AllOptional(ModelMetaclass):
         for field_name, field_type in annotations.items():
             if not field_name.startswith("__"):
                 annotations[field_name] = Optional[field_type]
+                namespace[field_name] = None
 
         namespace["__annotations__"] = annotations
 

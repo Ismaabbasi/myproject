@@ -7,7 +7,7 @@ from app.util.schema import AllOptional
 
 
 class BaseUser(BaseModel):
-    email: str
+    email: Optional[str] = None
     user_token: str
     name: str
     is_active: bool
@@ -29,7 +29,7 @@ class User(ModelBaseInfo, BaseUser, metaclass=AllOptional):
 
 
 class FindUser(FindBase, BaseUser, metaclass=AllOptional):
-    email: str
+    email: Optional[str] = None
     ...
 
 

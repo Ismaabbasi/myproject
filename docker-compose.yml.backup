@@ -1,0 +1,54 @@
+services:
+
+  mysql:
+    image: mysql:8.0
+    container_name: greenx-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: all_tables
+      MYSQL_USER: greenx
+      MYSQL_PASSWORD: c58bec0617a65be5f8a64b8386ca369a053964c920348692
+      MYSQL_ROOT_PASSWORD: e4fd2ed49a4a5405a71bf626f77013e3ac3c47e5d13c6858
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - greenx-network
+
+  backend:
+    build:
+      context: ./GreenX_DCS_Assesment_Tool_Backend
+    container_name: greenx-backend
+    restart: unless-stopped
+    environment:
+      ENV: dev
+      DB: mysql
+      DB_USER: greenx
+      DB_PASSWORD: c58bec0617a65be5f8a64b8386ca369a053964c920348692
+      DB_HOST: mysql
+      DB_PORT: 3306
+      SECRET_KEY: 390af03bda8fef818bcccd79071b0578facc259e1ff11eb28634ac8c1f7affea
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mysql
+    networks:
+      - greenx-network
+
+  frontend:
+    build:
+      context: ./greenX-assessment-tool-frontend
+    container_name: greenx-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - greenx-network
+
+volumes:
+  mysql_data:
+
+networks:
+  greenx-network:
+    driver: bridge
