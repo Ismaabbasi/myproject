@@ -3,12 +3,18 @@ pipeline {
 
     stages {
 
+        // =========================================================
+        // 1. CHECKOUT
+        // =========================================================
         stage('Checkout') {
             steps {
                 checkout scm
             }
         }
 
+        // =========================================================
+        // 2. TESTS + COVERAGE
+        // =========================================================
         stage('Tests + Coverage') {
             steps {
                 sh '''
@@ -35,6 +41,7 @@ pipeline {
                     echo "Waiting for MySQL..."
 
                     for i in $(seq 1 30); do
+
                         if docker exec greenx-test-mysql \
                             mysqladmin ping \
                             -h 127.0.0.1 \
@@ -69,18 +76,26 @@ pipeline {
                         -e DB_PASSWORD=testpass \
                         -e DB_HOST=greenx-test-mysql \
                         -e DB_PORT=3306 \
-                        -e SECRET_KEY=ci-test-secret-key-123456789 \
+                        -e SECRET_KEY=ci-test-secret-key-12345678901234567890 \
                         python:3.11-slim \
                         bash -c '
-                            apt-get update &&
+                            set -e
+
+                            apt-get update
+
                             apt-get install -y \
                                 gcc \
                                 g++ \
                                 libc6-dev \
-                                libffi-dev &&
-                            pip install --no-cache-dir -r requirements.txt &&
-                            pip install --no-cache-dir pytest coverage &&
-                            pytest -q --cov=app --cov-report=xml
+                                libffi-dev
+
+                            pip install --no-cache-dir -r requirements.txt
+
+                            pip install --no-cache-dir pytest coverage
+
+                            pytest -q \
+                                --cov=app \
+                                --cov-report=xml
                         '
 
                     echo "======================================"
@@ -89,14 +104,8 @@ pipeline {
 
                     test -f GreenX_DCS_Assesment_Tool_Backend/coverage.xml
 
-                    grep -o "line-rate=\"[^\"]*\"" \
-                        GreenX_DCS_Assesment_Tool_Backend/coverage.xml | head -1
-
-                    echo "======================================"
-                    echo "Removing temporary MySQL"
-                    echo "======================================"
-
-                    docker rm -f greenx-test-mysql >/dev/null 2>&1 || true
+                    echo "Coverage file exists:"
+                    ls -lh GreenX_DCS_Assesment_Tool_Backend/coverage.xml
                 '''
             }
 
@@ -109,15 +118,20 @@ pipeline {
             }
         }
 
+        // =========================================================
+        // 3. SONARQUBE ANALYSIS
+        // =========================================================
         stage('SonarQube Analysis') {
             steps {
                 script {
+
                     def scannerHome = tool(
                         name: 'SonarQube-Scanner',
                         type: 'hudson.plugins.sonar.SonarRunnerInstallation'
                     )
 
                     withSonarQubeEnv('SonarQube') {
+
                         sh """
                             ${scannerHome}/bin/sonar-scanner \
                             -Dsonar.projectKey=GreenX-DCS-Assessment-Tool \
@@ -132,19 +146,29 @@ pipeline {
             }
         }
 
+        // =========================================================
+        // 4. QUALITY GATE
+        // =========================================================
         stage('Quality Gate') {
             steps {
+
                 timeout(time: 5, unit: 'MINUTES') {
+
                     waitForQualityGate abortPipeline: true
                 }
             }
         }
 
+        // =========================================================
+        // 5. BUILD DOCKER IMAGES
+        // =========================================================
         stage('Build Docker Images') {
             steps {
                 sh '''
+                    set -e
+
                     echo "======================================"
-                    echo "Building Backend Image"
+                    echo "Building Backend Docker Image"
                     echo "======================================"
 
                     docker build \
@@ -152,19 +176,30 @@ pipeline {
                         ./GreenX_DCS_Assesment_Tool_Backend
 
                     echo "======================================"
-                    echo "Building Frontend Image"
+                    echo "Building Frontend Docker Image"
                     echo "======================================"
 
                     docker build \
                         -t myproject-frontend:latest \
                         ./greenX-assessment-tool-frontend
+
+                    echo "======================================"
+                    echo "Docker Images Built Successfully"
+                    echo "======================================"
+
+                    docker images | grep myproject
                 '''
             }
         }
 
+        // =========================================================
+        // 6. TRIVY SECURITY SCAN
+        // =========================================================
         stage('Trivy Security Scan') {
             steps {
                 sh '''
+                    set -e
+
                     echo "======================================"
                     echo "Trivy Backend Security Scan"
                     echo "======================================"
@@ -186,12 +221,20 @@ pipeline {
                         --severity HIGH,CRITICAL \
                         --exit-code 0 \
                         myproject-frontend:latest
+
+                    echo "======================================"
+                    echo "Trivy Security Scan Completed"
+                    echo "======================================"
                 '''
             }
         }
 
+        // =========================================================
+        // 7. PUSH DOCKER IMAGES
+        // =========================================================
         stage('Push Docker Images') {
             steps {
+
                 withCredentials([
                     usernamePassword(
                         credentialsId: 'dockerhub-credentials',
@@ -199,25 +242,52 @@ pipeline {
                         passwordVariable: 'DOCKERHUB_TOKEN'
                     )
                 ]) {
+
                     sh '''
+                        set -e
+
+                        echo "======================================"
+                        echo "Logging in to Docker Hub"
+                        echo "======================================"
+
                         echo "$DOCKERHUB_TOKEN" | \
                             docker login \
                             -u "$DOCKERHUB_USERNAME" \
                             --password-stdin
 
+                        echo "======================================"
+                        echo "Tagging Backend Image"
+                        echo "======================================"
+
                         docker tag \
                             myproject-backend:latest \
-                            $DOCKERHUB_USERNAME/myproject-backend:latest
+                            "$DOCKERHUB_USERNAME/myproject-backend:latest"
+
+                        echo "======================================"
+                        echo "Tagging Frontend Image"
+                        echo "======================================"
 
                         docker tag \
                             myproject-frontend:latest \
-                            $DOCKERHUB_USERNAME/myproject-frontend:latest
+                            "$DOCKERHUB_USERNAME/myproject-frontend:latest"
+
+                        echo "======================================"
+                        echo "Pushing Backend Image"
+                        echo "======================================"
 
                         docker push \
-                            $DOCKERHUB_USERNAME/myproject-backend:latest
+                            "$DOCKERHUB_USERNAME/myproject-backend:latest"
+
+                        echo "======================================"
+                        echo "Pushing Frontend Image"
+                        echo "======================================"
 
                         docker push \
-                            $DOCKERHUB_USERNAME/myproject-frontend:latest
+                            "$DOCKERHUB_USERNAME/myproject-frontend:latest"
+
+                        echo "======================================"
+                        echo "Docker Images Pushed Successfully"
+                        echo "======================================"
 
                         docker logout
                     '''
@@ -225,16 +295,57 @@ pipeline {
             }
         }
 
+        // =========================================================
+        // 8. DEPLOY TO EC2
+        // =========================================================
         stage('Deploy to EC2') {
             steps {
                 sh '''
+                    set -e
+
+                    echo "======================================"
+                    echo "Deploying Application to EC2"
+                    echo "======================================"
+
                     cd /opt/myproject/myproject
 
-                    docker compose pull backend frontend
+                    echo "Pulling latest backend image..."
+                    docker compose pull backend
 
+                    echo "Pulling latest frontend image..."
+                    docker compose pull frontend
+
+                    echo "Starting backend and frontend..."
                     docker compose up -d backend frontend
+
+                    echo "======================================"
+                    echo "Deployment Completed"
+                    echo "======================================"
+
+                    docker compose ps
                 '''
             }
         }
     }
+
+    // =============================================================
+    // POST ACTIONS
+    // =============================================================
+    post {
+
+        success {
+            echo "======================================"
+            echo "CI/CD PIPELINE COMPLETED SUCCESSFULLY"
+            echo "======================================"
+        }
+
+        failure {
+            echo "======================================"
+            echo "CI/CD PIPELINE FAILED"
+            echo "Check the failed stage above."
+            echo "======================================"
+        }
+    }
 }
+
+
