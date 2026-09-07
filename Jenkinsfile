@@ -36,7 +36,12 @@ pipeline {
 
                     for i in $(seq 1 30); do
                         if docker exec greenx-test-mysql \
-                            mysqladmin ping -h 127.0.0.1 -u root -prootpass --silent; then
+                            mysqladmin ping \
+                            -h 127.0.0.1 \
+                            -u root \
+                            -prootpass \
+                            --silent; then
+
                             echo "MySQL is ready"
                             break
                         fi
@@ -67,12 +72,19 @@ pipeline {
                         -e SECRET_KEY=ci-test-secret-key-123456789 \
                         python:3.11-slim \
                         bash -c '
-                            pip install --no-cache-dir -r requirements.txt pytest coverage &&
+                            apt-get update &&
+                            apt-get install -y \
+                                gcc \
+                                g++ \
+                                libc6-dev \
+                                libffi-dev &&
+                            pip install --no-cache-dir -r requirements.txt &&
+                            pip install --no-cache-dir pytest coverage &&
                             pytest -q --cov=app --cov-report=xml
                         '
 
                     echo "======================================"
-                    echo "Coverage file"
+                    echo "Checking coverage file"
                     echo "======================================"
 
                     test -f GreenX_DCS_Assesment_Tool_Backend/coverage.xml
